@@ -25,6 +25,19 @@ int main(int argc, char *argv[])
          exit(1);
      } 
      
+     //checks for options when executing code
+     for (int i =4 ; i < argc; i++)
+     {
+     	if (strcmp(argv[i],"-logip")==0)
+	{
+	    log_serv_addr.sin_addr.s_addr  = inet_addr(argv[i+1]);
+	    //the following code removes the options and arguments associated with it so that we only have the port numbers left.
+	    for (int j=i; j<argc; j++)
+	    	argv[j]= argv[j+2];
+	    argc = argc -2;
+	}
+     }
+
      // Following code initializes the ports
      int ports[argc-1];
      for(int i=1; i<argc; i++){
