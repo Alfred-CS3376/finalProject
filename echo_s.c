@@ -31,12 +31,27 @@ int main(int argc, char *argv[])
      	if (strcmp(argv[i],"-logip")==0)
 	{
 	    log_serv_addr.sin_addr.s_addr  = inet_addr(argv[i+1]);
-	    //the following code removes the options and arguments associated with it so that we only have the port numbers left.
-	    for (int j=i; j<argc; j++)
-	    	argv[j]= argv[j+2];
-	    argc = argc -2;
+	}
+	else if(strcmp(argv[i],"-logport")==0){
+	    log_serv_addr.sin_port = atoi(argv[i+1]);
 	}
      }
+
+     //The following code removes the options and arguments associated with it so that we only have the port numbers left
+     for(int i = 0; i < argc; i++){
+     	if(strcmp(argv[i],"-logip")){
+		argv[i] = argv[i+3];
+	}
+     }
+     //Decreases the argument count by 3.
+     argc = argc - 3;
+     //Now argv[] has the values of the ports in the first 5 elements, but since the argc
+     //count is decreases, this will not affect the rest of the program.
+     //Example input, where argc = 8 and argv[] looks like: ./echo 4000 4001 4002 -logip 10.24.36.33 -logport 8888
+     //After the above for loop is executed, argc = 5 and argv[] looks like: ./echo 4000 4001 4002 8888 10.24.36.33 -logport
+     //So, when for loops that require the use of argc are used later on, those for loops will only go to the 5th element, and it will
+     //appear as though argv[] = ./echo 4000 4001 4002 8888 , and the other elements will not be accessible to the for loops.
+
 
      // Following code initializes the ports
      int ports[argc-1];
