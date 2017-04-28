@@ -13,6 +13,8 @@ int main(int argc, char *argv[])
 	 int sockfd, newsockfd, sockfdudp, logsockfd, childpid;
 	 // default protocol to TCP
 	 int protocol = SOCK_STREAM;
+	 int logport;
+	 int ports[3]={-1,-1,-1};
 	 // variable to stores the size of the address of the client
      //socklen_t clilen;
 	 // buffer to store the characters read from the socket
@@ -25,39 +27,29 @@ int main(int argc, char *argv[])
          exit(1);
      } 
      
+     int options=argc;
      //checks for options when executing code
-     for (int i =4 ; i < argc; i++)
+     for (int i =1 ; i < argc; i++)
      {
      	if (strcmp(argv[i],"-logip")==0)
 	{
 	    log_serv_addr.sin_addr.s_addr  = inet_addr(argv[i+1]);
+	    options = i;
 	}
 	else if(strcmp(argv[i],"-logport")==0){
 	    log_serv_addr.sin_port = atoi(argv[i+1]);
-	}
+	    logport = atoi(argv[i+1]);
+	    if(i < options){
+		options = i;
+	    }
+	}else if(strcmp(argv[i],"UDP") == 0){if(i < options){options=i;}}
+	else if(strcmp(argv[i],"TCP") ==0) {if(i<options){options=i;}}
      }
 
-     //The following code removes the options and arguments associated with it so that we only have the port numbers left
-     for(int i = 0; i < argc; i++){
-     	if(strcmp(argv[i],"-logip")){
-		argv[i] = argv[i+3];
-	}
+     //ports
+     for (int i=1; i<options; i++){
+	ports[i-1] = atoi(argv[i]);
      }
-     //Decreases the argument count by 3.
-     argc = argc - 3;
-     //Now argv[] has the values of the ports in the first 5 elements, but since the argc
-     //count is decreases, this will not affect the rest of the program.
-     //Example input, where argc = 8 and argv[] looks like: ./echo 4000 4001 4002 -logip 10.24.36.33 -logport 8888
-     //After the above for loop is executed, argc = 5 and argv[] looks like: ./echo 4000 4001 4002 8888 10.24.36.33 -logport
-     //So, when for loops that require the use of argc are used later on, those for loops will only go to the 5th element, and it will
-     //appear as though argv[] = ./echo 4000 4001 4002 8888 , and the other elements will not be accessible to the for loops.
-
-
-     // Following code initializes the ports
-     int ports[argc-1];
-     for(int i=1; i<argc; i++){
-		ports[i-1] = atoi(argv[i]);
-	 }
 	 
 	/*Handle zombie processes. Ignore the SIGCHLD signal when child sends it on its death */
 	signal(SIGCHLD,SIG_IGN);
@@ -65,10 +57,11 @@ int main(int argc, char *argv[])
 	//Lets create log client here
 	bzero((char *) &serv_addr, sizeof(log_serv_addr)); 
 	logsockfd = createSocket(SOCK_DGRAM);
-        resolveHost(log_serv_addr, 9999, sockfd, "127.0.0.1");	
+        resolveHost(log_serv_addr, logport, sockfd, "127.0.0.1");	
 	
 	// This loop start new child process for each port
 	 for (int i=0; i<argc-1; i++){
+	 if(ports[i] != -1){
 		if((childpid = fork()) == -1){
 			perror("Error creating a child process");
 			exit(1);
@@ -102,7 +95,7 @@ int main(int argc, char *argv[])
 						 }
 					 }while(1);
 					 //close client connection
-					 //close(newsockfd);
+					 close(newsockfd);
 				}
 			}while(1);
 		}
@@ -136,6 +129,7 @@ int main(int argc, char *argv[])
 				// this is parent. 	
 			}	
 		}			
+	 }
 	 }
 	
 	close(sockfd);
