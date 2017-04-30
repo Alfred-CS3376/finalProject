@@ -10,6 +10,7 @@
 int main(int argc, char *argv[])
 {
      // variables to store the values returned by the socket system call and the accept system call
+	 bool loop = true;
 	 int sockfd;
 	 int port = 9999;
 	 // default protocol to TCP
@@ -36,13 +37,15 @@ int main(int argc, char *argv[])
 	// This loop start new child process for each port
 	sockfd = createSocket(protocol);    
 	bindSockToPort(serv_addr, port, sockfd);	
-	while(1){
+	while(loop){
 		int n = receiveDatagram(sockfd, buffer, cli_addr);
 		// Determine if crtl+C has been entered in echo_s
 		if (strcmp(buffer, "echo_s is stopping")== 0)
 		{
 			printf("log_s is stopping\n");
+			WriteLogFile(buffer);
 			// Stop running log_s
+			loop = false;
 			exit(0);
 		}
 		// Write messages stored in the buffer to log file
