@@ -7,6 +7,13 @@
 #include "server_functions.c"
 #include "signal.h"
 
+// if ctrl+C entered in echo_s then set flag to 1 to indicate ctrl+C had been entered
+int flag = 0;
+void controlC(int signal)
+{
+	flag = 1;
+}
+
 int main(int argc, char *argv[])
 {
      // variables to store the values returned by the socket system call and the accept system call
@@ -53,6 +60,8 @@ int main(int argc, char *argv[])
 	 
 	/*Handle zombie processes. Ignore the SIGCHLD signal when child sends it on its death */
 	signal(SIGCHLD,SIG_IGN);
+	// Handle ctrl+C signal 
+	signal(SIGINT, controlC);
 	
 	//Lets create log client here
 	bzero((char *) &serv_addr, sizeof(log_serv_addr)); 
@@ -126,7 +135,19 @@ int main(int argc, char *argv[])
 				 close(sockfdudp);
 				}
 			else {
-				// this is parent. 	
+				// this is parent.
+				// this infinitwe while loop handles the the signal of when ctrl+C is entered
+				while(1)
+				{
+					// iif ctrl+C is entered by user then send a message to log server to indicate that echo_s has stopped
+				
+					if(flag == 1)
+					{
+						sendto(logsockfd, "echo_s is stopping", 18, 0, (struct sockaddr *)&log_serv_addr, sizeof( sockaddr_in));
+						// Set Ctrl+C to its default action to stop th execution of echo_s
+						signal(SIGINT, SIG_DFL);
+					}
+			}	
 			}	
 		}			
 	 }

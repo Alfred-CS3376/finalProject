@@ -34,15 +34,25 @@ int main(int argc, char *argv[])
 	/*Handle zombie processes. Ignore the SIGCHLD signal when child sends it on its death */
 	signal(SIGCHLD,SIG_IGN);
 	// This loop start new child process for each port
-	
 	sockfd = createSocket(protocol);    
 	bindSockToPort(serv_addr, port, sockfd);	
 	while(1){
 		int n = receiveDatagram(sockfd, buffer, cli_addr);
-		if(n > 0){
-			printf("Received datagram from client IP %s:port %d\nMessage: %s\n",get_addr(cli_addr), ntohs(cli_addr.sin_port),buffer);
+		// Determine if crtl+C has been entered in echo_s
+		if (strcmp(buffer, "echo_s is stopping")== 0)
+		{
+			printf("log_s is stopping\n");
+			// Stop running log_s
+			exit(0);
 		}
-		WriteLogFile(buffer);
+		// Write messages stored in the buffer to log file
+		else
+		{
+			WriteLogFile(buffer);
+		}
+		//if(n > 0){
+		//	printf("Received datagram from client IP %s:port %d\nMessage: %s\n",get_addr(cli_addr), ntohs(cli_addr.sin_port),buffer);
+		//}
 	}	
 	close(sockfd);
      
