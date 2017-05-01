@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
      // variables to store the values returned by the socket system call and the accept system call
 	 int sockfd, newsockfd, sockfdudp, logsockfd, childpid;
 	 // default protocol to TCP
-	 int protocol = SOCK_STREAM;
+	 //int protocol = SOCK_STREAM;
+	 char* logip = "127.0.0.1";
 	 int logport;
 	 int ports[3]={-1,-1,-1};
 	 // variable to stores the size of the address of the client
@@ -39,23 +40,32 @@ int main(int argc, char *argv[])
      for (int i =1 ; i < argc; i++)
      {
      	if (strcmp(argv[i],"-logip")==0)
-	{
-	    log_serv_addr.sin_addr.s_addr  = inet_addr(argv[i+1]);
-	    options = i;
-	}
-	else if(strcmp(argv[i],"-logport")==0){
-	    log_serv_addr.sin_port = atoi(argv[i+1]);
-	    logport = atoi(argv[i+1]);
-	    if(i < options){
-		options = i;
-	    }
-	}else if(strcmp(argv[i],"UDP") == 0){if(i < options){options=i;}}
-	else if(strcmp(argv[i],"TCP") ==0) {if(i<options){options=i;}}
+		{
+			logip = argv[i+1];
+			log_serv_addr.sin_addr.s_addr  = inet_addr(argv[i+1]);
+			//options = i;
+			options = options-2;
+		}
+		else if(strcmp(argv[i],"-logport")==0){
+			log_serv_addr.sin_port = atoi(argv[i+1]);
+			logport = atoi(argv[i+1]);
+			/*if(i < options){
+			options = i;
+			}*/
+			options = options-2;
+		}/*else if(strcmp(argv[i],"UDP") == 0){if(i < options){options=i;}}
+		else if(strcmp(argv[i],"TCP") ==0) {if(i<options){options=i;}}*/
+     }
+	 
+	 if (options > 4) {
+         fprintf(stderr,"ERROR, server supports upto 3 well known ports\n");
+         exit(1);
      }
 
      //ports
      for (int i=1; i<options; i++){
-	ports[i-1] = atoi(argv[i]);
+		ports[i-1] = atoi(argv[i]);
+		printf("Port:%d\n",ports[i-1]);
      }
 	 
 	/*Handle zombie processes. Ignore the SIGCHLD signal when child sends it on its death */
@@ -66,10 +76,10 @@ int main(int argc, char *argv[])
 	//Lets create log client here
 	bzero((char *) &serv_addr, sizeof(log_serv_addr)); 
 	logsockfd = createSocket(SOCK_DGRAM);
-        resolveHost(log_serv_addr, logport, sockfd, "127.0.0.1");	
+        resolveHost(log_serv_addr, logport, logsockfd, logip);	
 	
 	// This loop start new child process for each port
-	 for (int i=0; i<argc-1; i++){
+	 for (int i=0; i<options-1; i++){
 	 if(ports[i] != -1){
 		if((childpid = fork()) == -1){
 			perror("Error creating a child process");
@@ -137,7 +147,8 @@ int main(int argc, char *argv[])
 			else {
 				// this is parent.
 				// this infinitwe while loop handles the the signal of when ctrl+C is entered
-				while(1)
+				
+				while(options-1 == i+1)
 				{
 					// iif ctrl+C is entered by user then send a message to log server to indicate that echo_s has stopped
 				
@@ -146,6 +157,7 @@ int main(int argc, char *argv[])
 						sendto(logsockfd, "echo_s is stopping", 18, 0, (struct sockaddr *)&log_serv_addr, sizeof( sockaddr_in));
 						// Set Ctrl+C to its default action to stop th execution of echo_s
 						signal(SIGINT, SIG_DFL);
+						exit(0);
 					}
 			}	
 			}	
